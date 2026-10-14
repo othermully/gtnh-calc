@@ -15,6 +15,10 @@
 #include "include/argparse/argparse.hpp"
 
 // Domain math: (Steam Age specific) (20tps)
+// Water tank L/s = 25 x Humidity x Environmental Modifiers
+// - Rain 300%
+// - No sky access 50%
+// - Snowing 50%
 
 // Small coal boiler:
 // Steam output: 120L/s, Tank(buffer) = 16,000L
@@ -59,7 +63,8 @@ enum class BoilerType{
     SimpleSolarBoiler,
     AdvancedSolarBoiler,
     ReinforcedLavaBoiler,
-    RailcraftBoiler
+    LPRailcraftBoiler,
+    HPRailcraftBoiler,
 };
 
 BoilerType get_boiler_type(std::string boiler){
@@ -77,8 +82,11 @@ BoilerType get_boiler_type(std::string boiler){
     else if (boiler == "ReinforcedLavaBoiler") {
         return BoilerType::ReinforcedLavaBoiler;
     }
-    else if (boiler == "RailcraftBoiler"){
-        return BoilerType::RailcraftBoiler;
+    else if (boiler == "LPRailcraftBoiler"){
+        return BoilerType::LPRailcraftBoiler;
+    }
+    else if (boiler == "HPRailcraftBoiler") {
+        return BoilerType::HPRailcraftBoiler;
     }
 
     return BoilerType::SmallCoalBoiler;
@@ -109,9 +117,11 @@ std::ostream& operator<< (std::ostream& out, const BoilerType& bt){
         case BoilerType::ReinforcedLavaBoiler:
             out << "Reinforced Lava Boiler";
             break;
-        case BoilerType::RailcraftBoiler:
-            out << "Railcraft Boiler";
+        case BoilerType::LPRailcraftBoiler:
+            out << "Low Pressure Railcraft Boiler";
             break;
+        case BoilerType::HPRailcraftBoiler:
+            out << "High Pressure Railcraft Boiler";
         default:
             out << "Unknown Boiler type...\n";
             break;
@@ -194,12 +204,18 @@ void print_summary(Boiler& b, int n_boilers,
 
 int main(int argc, char* argv[]){
 
+    // Assuming all boilers are at max heat
                                 // Type                        S/s     Water
     Boiler SmallCoalBoiler      { BoilerType::SmallCoalBoiler, 120.00, 0.75 };
     Boiler LargeCoalBoiler      { BoilerType::LargeCoalBoiler, 300.00, 1.88 };
     Boiler SimpleSolarBoiler    { BoilerType::SimpleSolarBoiler , 120.00, 0.75 };
     Boiler AdvancedSolarBoiler  { BoilerType::AdvancedSolarBoiler, 360.00, 2.25 };
     Boiler ReinforcedLavaBoiler { BoilerType::ReinforcedLavaBoiler, 600.00, 3.75 };
+    
+    // Multiply default steam out by n_tanks to get steam output at max heat
+    Boiler LPRailcraftBoiler    { BoilerType::LPRailcraftBoiler, 200.00, 1.25};
+    Boiler HPRailcraftBoiler    { BoilerType::HPRailcraftBoiler, 800, 5};
+
 
     std::unordered_map<std::string, Boiler> boiler_map;
     boiler_map["SmallCoalBoiler"]      = SmallCoalBoiler;
@@ -207,6 +223,8 @@ int main(int argc, char* argv[]){
     boiler_map["SimpleSolarBoiler"]    = SimpleSolarBoiler;
     boiler_map["AdvancedSolarBoiler"]  = AdvancedSolarBoiler;
     boiler_map["ReinforcedLavaBoiler"] = ReinforcedLavaBoiler;
+    boiler_map["LPRailcraftBoiler"]    = LPRailcraftBoiler;
+    boiler_map["HPRailcraftBoiler"]    = HPRailcraftBoiler;
 
     argparse::ArgumentParser program( "mc-calc" );
 
@@ -236,6 +254,12 @@ int main(int argc, char* argv[]){
     steam_command.add_argument("--time")
         .default_value(std::string("sec"))
         .help("Specify output in liters/s or liters/h (e.g. --time hour, --time sec");
+
+    // TODO: Get this working, add a file generation function, take in user input, then file reading function
+    steam_command.add_argument("--setup")
+        .help("Generate a config file of your current setup to run calculations.")
+        .default_value(false)
+        .implicit_value(true);
 
 
     // attach steam command to main parser
@@ -283,6 +307,38 @@ int main(int argc, char* argv[]){
             return 0;
         }
 
+        else if (boiler == "LPRailcraftBoiler" || boiler == "HPRailcraftBoiler") {
+
+            // Making sure we get the right boiler 
+            Boiler b; 
+            if (boiler == "LPRailcraftBoiler")  b = boiler_map["LPRailcraftBoiler"];
+            if (boiler == "HPRailcraftBoiler")  b = boiler_map["HPRailcraftBoiler"];
+
+            // Get user to input number of tanks, used to multiply default steam output
+            int n_tanks;
+            std::cout << "Enter the number of Railcraft Boiler tanks: ";
+
+            try {
+                std::cin >> n_tanks;
+                b.steam_out *= n_tanks;
+
+            } catch (const std::exception& e) {
+                std::cerr << e.what() << std::endl;
+            }
+
+            // compute values
+            std::cout << "Calculating for " << boiler << " " << "with " << n_tanks << " tanks.\n";
+
+            n_boilers         = compute_boiler_requirement(b, target);
+            actual_output     = compute_actual_output(n_boilers, b);
+            coal_req          = compute_coal_requirement(n_boilers);
+            excess_steam      = compute_excess_steam(target, actual_output);
+            water_consumption = compute_water_consumption(actual_output);
+            print_summary(b, n_boilers, actual_output, coal_req, excess_steam, water_consumption, time);
+
+            return EXIT_SUCCESS;
+        }
+
         Boiler b          = boiler_map[boiler];
         n_boilers         = compute_boiler_requirement(b, target);
         actual_output     = compute_actual_output(n_boilers, b);
@@ -291,7 +347,7 @@ int main(int argc, char* argv[]){
         water_consumption = compute_water_consumption(actual_output);
         print_summary(b, n_boilers, actual_output, coal_req, excess_steam, water_consumption, time);
 
-        return 0;
+        return EXIT_SUCCESS;
     }
 
     if (program.present<int>("--distance").has_value() != 0) {
