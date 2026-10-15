@@ -15,6 +15,7 @@
 #include "include/argparse/argparse.hpp"
 
 // Domain math: (Steam Age specific) (20tps)
+//
 // Water tank L/s = 25 x Humidity x Environmental Modifiers
 // - Rain 300%
 // - No sky access 50%
@@ -58,6 +59,7 @@ constexpr int g_hours_to_seconds = 3600;
 
 // TODO: Add Railcraft boiler as boiler type, uses different formulas, its also a multiblock structure
 enum class BoilerType{
+    Unknown,
     SmallCoalBoiler,
     LargeCoalBoiler,
     SimpleSolarBoiler,
@@ -67,28 +69,34 @@ enum class BoilerType{
     HPRailcraftBoiler,
 };
 
-BoilerType get_boiler_type(std::string boiler){
-    if (boiler == "SmallCoalBoiler") {
-        return BoilerType::SmallCoalBoiler;
-    }
-    else if (boiler == "LargeCoalBoiler")
-        return BoilerType::LargeCoalBoiler;
-    else if (boiler == "SimpleSolarBoiler"){
-        return BoilerType::SimpleSolarBoiler;
-    }
-    else if (boiler == "AdvancedSolarBoiler") {
-        return BoilerType::AdvancedSolarBoiler;
-    }
-    else if (boiler == "ReinforcedLavaBoiler") {
-        return BoilerType::ReinforcedLavaBoiler;
-    }
-    else if (boiler == "LPRailcraftBoiler"){
-        return BoilerType::LPRailcraftBoiler;
-    }
-    else if (boiler == "HPRailcraftBoiler") {
-        return BoilerType::HPRailcraftBoiler;
-    }
+enum class MachineType {
+    Unknown,
+    AlloySmelter,
+    Compressor,
+    Extractor,
+    Macerator,
+    Furnace,
+    ForgeHammer,
+};
 
+MachineType get_machine_type(std::string& machine){
+    if (machine == "Compressor")        return MachineType::Compressor;
+    else if (machine == "Extractor")    return MachineType::Extractor;
+    else if (machine == "Macerator")    return MachineType::Macerator;
+    else if (machine == "Furnace")      return MachineType::Furnace;
+    else if (machine == "ForgeHammer")  return MachineType::ForgeHammer;
+    else if (machine == "AlloySmelter") return MachineType::AlloySmelter;
+    return MachineType::Unknown;
+}
+
+BoilerType get_boiler_type(std::string& boiler){
+    if (boiler == "SmallCoalBoiler")           return BoilerType::SmallCoalBoiler;
+    else if (boiler == "LargeCoalBoiler")      return BoilerType::LargeCoalBoiler;
+    else if (boiler == "SimpleSolarBoiler")    return BoilerType::SimpleSolarBoiler;
+    else if (boiler == "AdvancedSolarBoiler")  return BoilerType::AdvancedSolarBoiler;
+    else if (boiler == "ReinforcedLavaBoiler") return BoilerType::ReinforcedLavaBoiler;
+    else if (boiler == "LPRailcraftBoiler")    return BoilerType::LPRailcraftBoiler;
+    else if (boiler == "HPRailcraftBoiler")    return BoilerType::HPRailcraftBoiler;
     return BoilerType::SmallCoalBoiler;
 }
 
@@ -97,6 +105,11 @@ struct Boiler{
     double       steam_out{};
     double       water_in{};
 //    float       coal_in{};
+};
+
+struct Machine{
+    MachineType type{};
+    double steam_consumption;
 };
 
 // Overload std::cout for boiler types to string
@@ -129,6 +142,51 @@ std::ostream& operator<< (std::ostream& out, const BoilerType& bt){
     return out;
 }
 
+// Overload std::cout for machine types to string
+std::ostream& operator<< (std::ostream& out, const MachineType& mt){
+    switch (mt) {
+        case MachineType::Macerator:
+            out << "Macerator";
+            break;
+        case MachineType::Compressor:
+            out << "Compressor";
+            break;
+        case MachineType::Extractor:
+            out << "Extractor";
+            break;
+        case MachineType::AlloySmelter:
+            out << "Alloy Smelter";
+            break;
+        case MachineType::ForgeHammer:
+            out << "Forge Hammer";
+            break;
+        case MachineType::Furnace:
+            out << "Furnace";
+            break;
+        default:
+            out << "Unknown Machine type...\n";
+            break;
+    }
+    return out;
+}
+
+
+void setup_config_file(std::string file_name){
+    std::ifstream f(file_name);
+
+    if (!f.is_open()) {
+        std::cerr << "Error opening file: " << file_name << "." << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    else {
+        // TODO: Add in placeholders for user inputs
+        std::cout << "File found!!" << std::endl;
+
+        exit(EXIT_SUCCESS);
+    }
+
+}
 
 int calculate_distance(const uint16_t chunks){
     return chunks * g_chunk;
@@ -165,6 +223,12 @@ double compute_boiler_requirement(const Boiler& b, const double steam_target){
 
 void list_boilers(std::unordered_map<std::string, Boiler>& boilers){
     for (const auto& [k, v] : boilers){
+        std::cout << v.type << '\n';
+    }
+}
+
+void list_machines(std::unordered_map<std::string, Machine>& machines){
+    for (const auto& [k, v] : machines){
         std::cout << v.type << '\n';
     }
 }
@@ -214,8 +278,21 @@ int main(int argc, char* argv[]){
     
     // Multiply default steam out by n_tanks to get steam output at max heat
     Boiler LPRailcraftBoiler    { BoilerType::LPRailcraftBoiler, 200.00, 1.25};
-    Boiler HPRailcraftBoiler    { BoilerType::HPRailcraftBoiler, 800, 5};
+    Boiler HPRailcraftBoiler    { BoilerType::HPRailcraftBoiler, 800, 5.0};
 
+    // TODO: Need to add output values
+    Machine LPMacerator         { MachineType::Macerator, 80.0 };
+    Machine HPMacerator         { MachineType::Macerator, 120.0 };
+    Machine LPFurnace           { MachineType::Furnace, 160.0 };
+    Machine HPFurnace           { MachineType::Furnace, 320.0 };
+    Machine LPAlloySmelter      { MachineType::AlloySmelter, 1200.0 };
+    Machine HPAlloySmelter      { MachineType::AlloySmelter, 2400.0 };
+    Machine LPCompressor        { MachineType::Compressor, 160.0 };
+    Machine HPCompressor        { MachineType::Compressor, 320.0 };
+    Machine LPForgeHammer       { MachineType::ForgeHammer, 1200.0 };
+    Machine HPForgeHammer       { MachineType::ForgeHammer, 2400.0 };
+    Machine LPExtractor         { MachineType::Extractor, 320.0 };
+    Machine HPExtractor         { MachineType::Extractor, 640.0 };
 
     std::unordered_map<std::string, Boiler> boiler_map;
     boiler_map["SmallCoalBoiler"]      = SmallCoalBoiler;
@@ -226,18 +303,44 @@ int main(int argc, char* argv[]){
     boiler_map["LPRailcraftBoiler"]    = LPRailcraftBoiler;
     boiler_map["HPRailcraftBoiler"]    = HPRailcraftBoiler;
 
+    std::unordered_map<std::string, Machine> machine_map;
+    machine_map["LPMacerator"]    = LPMacerator;
+    machine_map["HPMacerator"]    = HPMacerator;
+    machine_map["LPFurnace"]      = LPFurnace;
+    machine_map["HPFurnace"]      = HPFurnace;
+    machine_map["LPExtractor"]    = LPExtractor;
+    machine_map["HPExtractor"]    = HPExtractor;
+    machine_map["LPForgeHammer"]  = LPForgeHammer;
+    machine_map["HPForgeHammer"]  = HPForgeHammer;
+    machine_map["LPCompressor"]   = LPCompressor;
+    machine_map["HPCompressor"]   = HPCompressor;
+    machine_map["LPAlloySmelter"] = LPAlloySmelter;
+    machine_map["HPAlloySmelter"] = HPAlloySmelter;
+
     argparse::ArgumentParser program( "mc-calc" );
 
-    //auto& group = program.add_mutually_exclusive_group(true);
-    program.add_argument("--distance")
-        .help("Calculate block distance based on provided chunk count")
-        //.default_value(0)
-        .scan<'i', int>();
+    {
+        auto& group = program.add_mutually_exclusive_group();
+        // TODO: Get this working, add a file generation function, take in user input, then file reading function
+        group.add_argument("--setup")
+            .help("Generate a config file of your current setup to run calculations.")
+            .flag();
 
-    program.add_argument("--list-boilers")
-        .help("View list of all boiler types")
-        .default_value(false)
-        .implicit_value(true);
+        //auto& group = program.add_mutually_exclusive_group(true);
+        group.add_argument("--distance")
+            .help("Calculate block distance based on provided chunk count")
+            //.default_value(0)
+            .scan<'i', int>();
+
+        group.add_argument("--list-boilers")
+            .help("View list of all boiler types")
+            .default_value(false)
+            .implicit_value(true);
+
+        group.add_argument("--list-machines")
+            .help("View list of all machine types")
+            .flag();
+    }
 
     // steam sub-command
     argparse::ArgumentParser steam_command("steam");
@@ -255,12 +358,6 @@ int main(int argc, char* argv[]){
         .default_value(std::string("sec"))
         .help("Specify output in liters/s or liters/h (e.g. --time hour, --time sec");
 
-    // TODO: Get this working, add a file generation function, take in user input, then file reading function
-    steam_command.add_argument("--setup")
-        .help("Generate a config file of your current setup to run calculations.")
-        .default_value(false)
-        .implicit_value(true);
-
 
     // attach steam command to main parser
     program.add_subparser(steam_command);
@@ -271,11 +368,24 @@ int main(int argc, char* argv[]){
     catch (const std::exception& err) {
         std::cerr << err.what() << std::endl;
         std::cerr << program;
-        return 1;
+
+        return EXIT_FAILURE;
     }
 
     if (program["list-boilers"] == true) {
         list_boilers(boiler_map);
+    }
+
+    if (program["list-machines"] == true){
+        list_machines(machine_map);
+    }
+
+    if (program["setup"] == true){
+        std::cout << "Called setup function\n";
+        std::string file_name { "mc.conf" };
+
+        setup_config_file(file_name);
+
     }
 
     if (steam_command.present<double>("--target").has_value() != 0) {
@@ -320,6 +430,7 @@ int main(int argc, char* argv[]){
 
             try {
                 std::cin >> n_tanks;
+                // Railcraft boilers steam output is multiplied by number of tanks
                 b.steam_out *= n_tanks;
 
             } catch (const std::exception& e) {
