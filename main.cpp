@@ -52,12 +52,21 @@
 // Boilers heating process, 1 charcoal last 96 seconds, at max heat, it lasts 360 seconds 
 
 
+
+// TODO: Fix fuel consumption errors, different type of fuels can be used, and different machine consume differently
+
 constexpr int g_chunk = 16;
 constexpr int g_days_to_seconds = 86400;
 constexpr int g_hours_to_seconds = 3600;
 
+enum class FuelType{
+    Coal,
+    Charcoal,
+    Creosote,
+    Solar,
+    Lava,
+};
 
-// TODO: Add Railcraft boiler as boiler type, uses different formulas, its also a multiblock structure
 enum class BoilerType{
     Unknown,
     SmallCoalBoiler,
@@ -71,34 +80,19 @@ enum class BoilerType{
 
 enum class MachineType {
     Unknown,
-    AlloySmelter,
-    Compressor,
-    Extractor,
-    Macerator,
-    Furnace,
-    ForgeHammer,
+    HPAlloySmelter,
+    LPAlloySmelter,
+    HPCompressor,
+    LPCompressor,
+    HPExtractor,
+    LPExtractor,
+    HPMacerator,
+    LPMacerator,
+    HPFurnace,
+    LPFurnace,
+    HPForgeHammer,
+    LPForgeHammer,
 };
-
-MachineType get_machine_type(std::string& machine){
-    if (machine == "Compressor")        return MachineType::Compressor;
-    else if (machine == "Extractor")    return MachineType::Extractor;
-    else if (machine == "Macerator")    return MachineType::Macerator;
-    else if (machine == "Furnace")      return MachineType::Furnace;
-    else if (machine == "ForgeHammer")  return MachineType::ForgeHammer;
-    else if (machine == "AlloySmelter") return MachineType::AlloySmelter;
-    return MachineType::Unknown;
-}
-
-BoilerType get_boiler_type(std::string& boiler){
-    if (boiler == "SmallCoalBoiler")           return BoilerType::SmallCoalBoiler;
-    else if (boiler == "LargeCoalBoiler")      return BoilerType::LargeCoalBoiler;
-    else if (boiler == "SimpleSolarBoiler")    return BoilerType::SimpleSolarBoiler;
-    else if (boiler == "AdvancedSolarBoiler")  return BoilerType::AdvancedSolarBoiler;
-    else if (boiler == "ReinforcedLavaBoiler") return BoilerType::ReinforcedLavaBoiler;
-    else if (boiler == "LPRailcraftBoiler")    return BoilerType::LPRailcraftBoiler;
-    else if (boiler == "HPRailcraftBoiler")    return BoilerType::HPRailcraftBoiler;
-    return BoilerType::SmallCoalBoiler;
-}
 
 struct Boiler{
     BoilerType   type{};
@@ -111,6 +105,39 @@ struct Machine{
     MachineType type{};
     double steam_consumption;
 };
+
+struct Fuel{
+    FuelType type{};
+    double burn_rate{};
+};
+
+
+MachineType get_machine_type(std::string& machine){
+    if (machine == "LPCompressor")        return MachineType::LPCompressor;
+    else if (machine == "HPCompressor")   return MachineType::HPCompressor;
+    else if (machine == "LPExtractor")    return MachineType::LPExtractor;
+    else if (machine == "HPExtractor")    return MachineType::HPExtractor;
+    else if (machine == "HPMacerator")    return MachineType::HPMacerator;
+    else if (machine == "LPMacerator")    return MachineType::LPMacerator;
+    else if (machine == "HPFurnace")      return MachineType::HPFurnace;
+    else if (machine == "LPFurnace")      return MachineType::LPFurnace;
+    else if (machine == "HPForgeHammer")  return MachineType::HPForgeHammer;
+    else if (machine == "LPForgeHammer")  return MachineType::LPForgeHammer;
+    else if (machine == "HPAlloySmelter") return MachineType::HPAlloySmelter;
+    else if (machine == "LPAlloySmelter") return MachineType::LPAlloySmelter;
+    return MachineType::Unknown;
+}
+
+BoilerType get_boiler_type(std::string& boiler){
+    if (boiler == "SmallCoalBoiler")           return BoilerType::SmallCoalBoiler;
+    else if (boiler == "LargeCoalBoiler")      return BoilerType::LargeCoalBoiler;
+    else if (boiler == "SimpleSolarBoiler")    return BoilerType::SimpleSolarBoiler;
+    else if (boiler == "AdvancedSolarBoiler")  return BoilerType::AdvancedSolarBoiler;
+    else if (boiler == "ReinforcedLavaBoiler") return BoilerType::ReinforcedLavaBoiler;
+    else if (boiler == "LPRailcraftBoiler")    return BoilerType::LPRailcraftBoiler;
+    else if (boiler == "HPRailcraftBoiler")    return BoilerType::HPRailcraftBoiler;
+    return BoilerType::Unknown;
+}
 
 // Overload std::cout for boiler types to string
 std::ostream& operator<< (std::ostream& out, const BoilerType& bt){
@@ -135,6 +162,7 @@ std::ostream& operator<< (std::ostream& out, const BoilerType& bt){
             break;
         case BoilerType::HPRailcraftBoiler:
             out << "High Pressure Railcraft Boiler";
+            break;
         default:
             out << "Unknown Boiler type...\n";
             break;
@@ -145,23 +173,41 @@ std::ostream& operator<< (std::ostream& out, const BoilerType& bt){
 // Overload std::cout for machine types to string
 std::ostream& operator<< (std::ostream& out, const MachineType& mt){
     switch (mt) {
-        case MachineType::Macerator:
-            out << "Macerator";
+        case MachineType::LPMacerator:
+            out << "Low Pressure Macerator";
             break;
-        case MachineType::Compressor:
-            out << "Compressor";
+        case MachineType::HPMacerator:
+            out << "High Pressure Macerator";
             break;
-        case MachineType::Extractor:
-            out << "Extractor";
+        case MachineType::LPCompressor:
+            out << "Low Pressure Compressor";
             break;
-        case MachineType::AlloySmelter:
-            out << "Alloy Smelter";
+        case MachineType::HPCompressor:
+            out << "High Pressure Compressor";
             break;
-        case MachineType::ForgeHammer:
-            out << "Forge Hammer";
+        case MachineType::LPExtractor:
+            out << "Low Pressure Extractor";
             break;
-        case MachineType::Furnace:
-            out << "Furnace";
+        case MachineType::HPExtractor:
+            out << "High Pressure Extractor";
+            break;
+        case MachineType::LPAlloySmelter:
+            out << "Low Pressure Alloy Smelter";
+            break;
+        case MachineType::HPAlloySmelter:
+            out << "High Pressure Alloy Smelter";
+            break;
+        case MachineType::LPForgeHammer:
+            out << "Low Pressure Forge Hammer";
+            break;
+        case MachineType::HPForgeHammer:
+            out << "High Pressure Forge Hammer";
+            break;
+        case MachineType::LPFurnace:
+            out << "Low Pressure Furnace";
+            break;
+        case MachineType::HPFurnace:
+            out << "High Pressure Furnace";
             break;
         default:
             out << "Unknown Machine type...\n";
@@ -229,7 +275,7 @@ void list_boilers(std::unordered_map<std::string, Boiler>& boilers){
 
 void list_machines(std::unordered_map<std::string, Machine>& machines){
     for (const auto& [k, v] : machines){
-        std::cout << v.type << '\n';
+        std::cout << v.type << " | Steam requirement: " << v.steam_consumption << "L/s." << '\n';
     }
 }
 
@@ -269,6 +315,7 @@ void print_summary(Boiler& b, int n_boilers,
 int main(int argc, char* argv[]){
 
     // Assuming all boilers are at max heat
+    // Can probably move all these into a header file
                                 // Type                        S/s     Water
     Boiler SmallCoalBoiler      { BoilerType::SmallCoalBoiler, 120.00, 0.75 };
     Boiler LargeCoalBoiler      { BoilerType::LargeCoalBoiler, 300.00, 1.88 };
@@ -281,18 +328,18 @@ int main(int argc, char* argv[]){
     Boiler HPRailcraftBoiler    { BoilerType::HPRailcraftBoiler, 800, 5.0};
 
     // TODO: Need to add output values
-    Machine LPMacerator         { MachineType::Macerator, 80.0 };
-    Machine HPMacerator         { MachineType::Macerator, 120.0 };
-    Machine LPFurnace           { MachineType::Furnace, 160.0 };
-    Machine HPFurnace           { MachineType::Furnace, 320.0 };
-    Machine LPAlloySmelter      { MachineType::AlloySmelter, 1200.0 };
-    Machine HPAlloySmelter      { MachineType::AlloySmelter, 2400.0 };
-    Machine LPCompressor        { MachineType::Compressor, 160.0 };
-    Machine HPCompressor        { MachineType::Compressor, 320.0 };
-    Machine LPForgeHammer       { MachineType::ForgeHammer, 1200.0 };
-    Machine HPForgeHammer       { MachineType::ForgeHammer, 2400.0 };
-    Machine LPExtractor         { MachineType::Extractor, 320.0 };
-    Machine HPExtractor         { MachineType::Extractor, 640.0 };
+    Machine LPMacerator         { MachineType::LPMacerator, 80.0 };
+    Machine HPMacerator         { MachineType::HPMacerator, 120.0 };
+    Machine LPFurnace           { MachineType::LPFurnace, 160.0 };
+    Machine HPFurnace           { MachineType::HPFurnace, 320.0 };
+    Machine LPAlloySmelter      { MachineType::LPAlloySmelter, 1200.0 };
+    Machine HPAlloySmelter      { MachineType::HPAlloySmelter, 2400.0 };
+    Machine LPCompressor        { MachineType::LPCompressor, 160.0 };
+    Machine HPCompressor        { MachineType::HPCompressor, 320.0 };
+    Machine LPForgeHammer       { MachineType::LPForgeHammer, 1200.0 };
+    Machine HPForgeHammer       { MachineType::HPForgeHammer, 2400.0 };
+    Machine LPExtractor         { MachineType::LPExtractor, 320.0 };
+    Machine HPExtractor         { MachineType::HPExtractor, 640.0 };
 
     std::unordered_map<std::string, Boiler> boiler_map;
     boiler_map["SmallCoalBoiler"]      = SmallCoalBoiler;
@@ -317,6 +364,8 @@ int main(int argc, char* argv[]){
     machine_map["LPAlloySmelter"] = LPAlloySmelter;
     machine_map["HPAlloySmelter"] = HPAlloySmelter;
 
+
+    // TODO: Should also probably move the arg parser into its own header file
     argparse::ArgumentParser program( "mc-calc" );
 
     {
@@ -425,7 +474,7 @@ int main(int argc, char* argv[]){
             if (boiler == "HPRailcraftBoiler")  b = boiler_map["HPRailcraftBoiler"];
 
             // Get user to input number of tanks, used to multiply default steam output
-            int n_tanks;
+            int n_tanks{};
             std::cout << "Enter the number of Railcraft Boiler tanks: ";
 
             try {
