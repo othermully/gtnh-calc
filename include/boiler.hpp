@@ -2,6 +2,7 @@
 #define BOILER_HPP
 
 #include <ostream>
+#include <iostream>
 #include <unordered_map>
 #include <string>
 
@@ -85,6 +86,12 @@ static BoilerType get_boiler_type(std::string& boiler){
     else if (boiler == "LPRailcraftBoiler")    return BoilerType::LPRailcraftBoiler;
     else if (boiler == "HPRailcraftBoiler")    return BoilerType::HPRailcraftBoiler;
     return BoilerType::Unknown;
+}
+
+static void list_boilers(std::unordered_map<std::string, boiler::Boiler>& boilers){
+    for (const auto& [k, v] : boilers){
+        std::cout << v.type << '\n';
+    }
 }
 
 };

@@ -118,6 +118,13 @@ static std::ostream& operator<< (std::ostream& out, const MachineType& mt){
     else if (machine == "LPAlloySmelter") return MachineType::LPAlloySmelter;
     return MachineType::Unknown;
 }
+
+static void list_machines(std::unordered_map<std::string, machine::Machine>& machines){
+    for (const auto& [k, v] : machines){
+        std::cout << v.type << " | Steam requirement: " << v.steam_consumption << "L/s." << '\n';
+    }
+}
+
 };
 
 #endif
