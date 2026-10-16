@@ -13,6 +13,9 @@
 #include <unordered_map>
 #include <fstream>
 #include "include/argparse/argparse.hpp"
+#include "include/conf.hpp"
+
+//#include "include/machine.hpp"
 
 // Domain math: (Steam Age specific) (20tps)
 //
@@ -229,6 +232,8 @@ void setup_config_file(std::string file_name){
         // TODO: Add in placeholders for user inputs
         std::cout << "File found!!" << std::endl;
 
+        config::print_menu();
+
         exit(EXIT_SUCCESS);
     }
 
@@ -242,11 +247,11 @@ double compute_actual_output(const int n_boilers, const Boiler& b){
     return b.steam_out * n_boilers;
 }
 
-//TODO Am i retarded?
+//TODO Am i retarded? - Yes
 double compute_coal_requirement(int n_boilers)
 {
     // 1 coal at max heat = 360 seconds of steam, 120L/s (small boiler) * 360 = 43,200Ls/coal
-    return (static_cast<double>(n_boilers) / 360) * 360;
+    return (static_cast<double>(n_boilers) / 360) * 360; // always going to return n_boilers lol
     //return (actual_out / rate_per_boiler);
 }
 
