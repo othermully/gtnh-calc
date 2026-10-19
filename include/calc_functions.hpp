@@ -1,9 +1,10 @@
 #ifndef CALC_FUNCTIONS_HPP
 #define CALC_FUNCTIONS_HPP
 
-#include "boiler.hpp"
 #include <cmath>
 #include <cstdint>
+
+#include "boiler.hpp"
 
 constexpr int g_chunk = 16;
 
@@ -41,6 +42,7 @@ static double compute_boiler_requirement(const boiler::Boiler& b, const double s
     int n_boilers = std::ceil(steam_target / b.steam_out);
     return n_boilers;
 }
+
 };
 
 #endif
